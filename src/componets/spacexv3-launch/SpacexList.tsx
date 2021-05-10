@@ -8,13 +8,35 @@ import Container from 'react-bootstrap/esm/Container';
 import Row from 'react-bootstrap/Row';
 import Pagination from 'react-bootstrap/Pagination';
 
-import { updatePage } from '../../redux/slices/spacexv3/spacexSlice';
+import {
+  updatePaginationOffsetAndPageIndex,
+  fetchSpacexs,
+} from '../../redux/slices/spacexv3/spacexSlice';
 
 import { nanoid } from '@reduxjs/toolkit';
 
 const SpacexList = () => {
-  const { list, status, error, page } = useAppSelector((state) => state.spacex);
+  const { list, status, error, pagination } = useAppSelector(
+    (state) => state.spacex
+  );
   const dispatch = useAppDispatch();
+
+  const renderPaginationBtns = () => {
+    return Array.from({ length: pagination.totalPages }, (_, idx) => {
+      return (
+        <Pagination.Item
+          onClick={() => {
+            dispatch(updatePaginationOffsetAndPageIndex(idx));
+            dispatch(fetchSpacexs());
+          }}
+          key={idx}
+          active={idx === pagination.pageIndex}
+        >
+          {idx + 1}
+        </Pagination.Item>
+      );
+    });
+  };
 
   if (status === 'pending') {
     return (
@@ -34,32 +56,16 @@ const SpacexList = () => {
       );
     }
     if (list.length > 0) {
-      const spaceXPerPage = 16;
-      const pages = Math.ceil(list.length / spaceXPerPage);
-      const newLists = Array.from({ length: pages }, (_, index) => {
-        const start = index * spaceXPerPage;
-        const end = start + spaceXPerPage;
-        const itemInPage = list.slice(start, end);
-        return itemInPage;
-      });
       return (
         <Container className="mt-2 mt-md-5">
           <Row>
-            {newLists[page].map((spacex) => (
+            {list.map((spacex) => (
               <SpacexCard key={nanoid()} spacex={spacex} />
             ))}
           </Row>
           <Row className="mt-5 justify-content-center">
             <Pagination className="justify-content-center">
-              {newLists.map((_, idx) => (
-                <Pagination.Item
-                  onClick={() => dispatch(updatePage(idx))}
-                  key={idx}
-                  active={idx === page}
-                >
-                  {idx + 1}
-                </Pagination.Item>
-              ))}
+              {renderPaginationBtns()}
             </Pagination>
           </Row>
         </Container>
