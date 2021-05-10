@@ -1,7 +1,9 @@
 import { configureStore } from '@reduxjs/toolkit';
-
+import spacexReducer from '../slices/spacexv3/spacexSlice';
 export const store = configureStore({
-  reducer: {},
+  reducer: {
+    spacex: spacexReducer,
+  },
 });
 
 export type RootState = ReturnType<typeof store.getState>;
