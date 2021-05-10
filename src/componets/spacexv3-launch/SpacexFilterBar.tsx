@@ -11,9 +11,10 @@ import {
   updateFilterTime,
   updateFilterLaunchStatus,
   fetchSpacexs,
+  resetPaginationOffsetAndPageIndex,
 } from '../../redux/slices/spacexv3/spacexSlice';
 import { getTime } from '../../redux/slices/spacexv3/spacexHelper';
-import { updatePage } from '../../redux/slices/spacexv3/spacexSlice';
+// import { updatePage } from '../../redux/slices/spacexv3/spacexSlice';
 
 enum Time {
   All = 'all',
@@ -74,7 +75,7 @@ const SpacexFilterBar = () => {
       if (time === Time.All) {
         dispatch(updateFilterTime({ time: undefined }));
       }
-      dispatch(updatePage(0));
+      dispatch(resetPaginationOffsetAndPageIndex());
       dispatch(fetchSpacexs());
     }
   }, [time, dispatch]);
@@ -90,7 +91,7 @@ const SpacexFilterBar = () => {
       if (launchStatus === LaunchStatus.Failure) {
         dispatch(updateFilterLaunchStatus({ launchStatus: false }));
       }
-      dispatch(updatePage(0));
+      dispatch(resetPaginationOffsetAndPageIndex());
       dispatch(fetchSpacexs());
     }
   }, [dispatch, launchStatus]);

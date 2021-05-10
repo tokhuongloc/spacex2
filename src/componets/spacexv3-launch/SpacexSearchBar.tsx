@@ -10,7 +10,7 @@ import { useAppDispatch } from '../../hooks/state-dispatch/useAppDispatch';
 
 import {
   updateSearchTerm,
-  updatePage,
+  resetPaginationOffsetAndPageIndex,
   fetchSpacexs,
 } from '../../redux/slices/spacexv3/spacexSlice';
 
@@ -20,9 +20,9 @@ const SpacexSearchBar = () => {
 
   useEffect(() => {
     dispatch(updateSearchTerm(searchTerm));
+    dispatch(resetPaginationOffsetAndPageIndex());
 
     const timeId = setTimeout(() => {
-      dispatch(updatePage(0));
       dispatch(fetchSpacexs());
     }, 700);
 

@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import spacexv3Api from '../../../apis/spacexv3';
-import { RootState } from '../../store';
+import { RootState, AppDispatch } from '../../store';
 
 export interface SpacexCard {
   mission_name: string;
@@ -14,31 +14,50 @@ export interface FilterObject {
   launchStatus?: boolean | undefined;
 }
 
+export interface Pagination {
+  pageIndex: number;
+  totalPages: number;
+  totalItems: number;
+  offset: number;
+  limit: number;
+}
+
 export interface Spacex {
   list: SpacexCard[];
   searchTerm: string | null;
   filter: FilterObject;
   status: 'failure' | 'pending' | 'success' | null;
   error: string | null;
-  page: number;
+  pagination: Pagination;
 }
 
 export const fetchSpacexs = createAsyncThunk<
   SpacexCard[],
   void,
-  { state: RootState }
->('spacex/fetchSpacexs', async (_, { getState }) => {
-  const { searchTerm, filter } = getState().spacex;
+  { state: RootState; dispatch: AppDispatch }
+>('spacex/fetchSpacexs', async (_, { getState, dispatch }) => {
+  const { searchTerm, filter, pagination } = getState().spacex;
 
   // check how to fetch bases on filter of spacex
   if (Object.keys(filter).length === 0) {
     if (!searchTerm) {
-      const responeAllList = await spacexv3Api.get('/launches');
+      const responeAllList = await spacexv3Api.get('/launches', {
+        params: {
+          offset: pagination.offset,
+          limit: pagination.limit,
+        },
+      });
+      dispatch(updatePagination(responeAllList.headers['spacex-api-count']));
       return responeAllList.data as SpacexCard[];
     }
     const responeSearchList = await spacexv3Api.get('/launches', {
-      params: { rocket_name: searchTerm },
+      params: {
+        rocket_name: searchTerm,
+        offset: pagination.offset,
+        limit: pagination.limit,
+      },
     });
+    dispatch(updatePagination(responeSearchList.headers['spacex-api-count']));
     return responeSearchList.data as SpacexCard[];
   } else {
     if (!searchTerm) {
@@ -47,8 +66,11 @@ export const fetchSpacexs = createAsyncThunk<
           start: filter.time?.start,
           end: filter.time?.end,
           launch_success: filter?.launchStatus,
+          offset: pagination.offset,
+          limit: pagination.limit,
         },
       });
+      dispatch(updatePagination(responeFilterList.headers['spacex-api-count']));
       return responeFilterList.data as SpacexCard[];
     }
     const responeFilterList = await spacexv3Api.get('/launches', {
@@ -57,8 +79,11 @@ export const fetchSpacexs = createAsyncThunk<
         start: filter.time?.start,
         end: filter.time?.end,
         launch_success: filter?.launchStatus,
+        offset: pagination.offset,
+        limit: pagination.limit,
       },
     });
+    dispatch(updatePagination(responeFilterList.headers['spacex-api-count']));
     return responeFilterList.data as SpacexCard[];
   }
 });
@@ -69,7 +94,13 @@ const initialState: Spacex = {
   error: null,
   searchTerm: null,
   filter: {},
-  page: 0,
+  pagination: {
+    pageIndex: 0,
+    totalPages: 0,
+    totalItems: 0,
+    limit: 16,
+    offset: 0,
+  },
 };
 
 export const spacexSlice = createSlice({
@@ -91,8 +122,19 @@ export const spacexSlice = createSlice({
       }
       state.filter = { ...state.filter, ...action.payload };
     },
-    updatePage(state, action) {
-      state.page = action.payload;
+
+    updatePagination(state, action) {
+      const totalItems = Number(action.payload);
+      const totalPages = Math.ceil(totalItems / state.pagination.limit);
+      state.pagination = { ...state.pagination, totalItems, totalPages };
+    },
+    updatePaginationOffsetAndPageIndex(state, action) {
+      const { pagination } = state;
+      state.pagination.offset = action.payload * pagination.limit;
+      state.pagination.pageIndex = action.payload;
+    },
+    resetPaginationOffsetAndPageIndex(state) {
+      state.pagination = { ...state.pagination, pageIndex: 0, offset: 0 };
     },
   },
   extraReducers: (builder) => {
@@ -114,7 +156,9 @@ export const {
   updateSearchTerm,
   updateFilterTime,
   updateFilterLaunchStatus,
-  updatePage,
+  updatePagination,
+  updatePaginationOffsetAndPageIndex,
+  resetPaginationOffsetAndPageIndex,
 } = spacexSlice.actions;
 
 export default spacexSlice.reducer;
